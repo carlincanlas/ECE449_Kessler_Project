@@ -1,12 +1,4 @@
-# ECE 449 Intelligent Systems Engineering
-# Fall 2023
-# Dr. Scott Dick
 from pickle import FALSE
-
-# Demonstration of a fuzzy tree-based controller for Kessler Game.
-# Please see the Kessler Game Development Guide by Dr. Scott Dick for a
-#   detailed discussion of this source code.
-
 from kesslergame import KesslerController # In Eclipse, the name of the library is kesslergame, not src.kesslergame
 from typing import Dict, Tuple
 from cmath import sqrt
@@ -231,7 +223,7 @@ class SnoopyFlyingAce(KesslerController):
             fire = False
                
         # And return your three outputs to the game simulation. Controller algorithm complete.
-        thrust = 0.0
+        thrust = 100.0
 
         drop_mine = False
         
