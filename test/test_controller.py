@@ -5,38 +5,33 @@
 
 from kesslergame import KesslerController
 from typing import Dict, Tuple
-import math
 
 
 class TestController(KesslerController):
     def __init__(self):
-        self.debug_counter = 0
+        """
+        Any variables or initialization desired for the controller can be set up here
+        """
+        ...
 
-    def actions(self, ship_state: Dict, game_state: Dict):
+    def actions(self, ship_state: Dict, game_state: Dict) -> Tuple[float, float, bool, bool]:
+        """
+        Method processed each time step by this controller to determine what control actions to take
 
-        self.debug_counter += 1
+        Arguments:
+            ship_state (dict): contains state information for your own ship
+            game_state (dict): contains state information for all objects in the game
 
-        if self.debug_counter % 30 == 0:
-            print("Current heading:", ship_state["heading"])
+        Returns:
+            float: thrust control value
+            float: turn-rate control value
+            bool: fire control value. Shoots if true
+            bool: mine deployment control value. Lays mine if true
+        """
 
-        ship_x, ship_y = ship_state["position"]
-        heading = ship_state["heading"]
-
-        asteroid = game_state.dict["asteroids"][0]
-        asteroid_x, asteroid_y = asteroid["position"]
-
-        dx = asteroid_x - ship_x
-        dy = asteroid_y - ship_y
-
-        distance = (dx**2 + dy**2)**0.5
-
-        angle_to_asteroid = math.degrees(math.atan2(dy, dx))
-
-        angle_difference = (angle_to_asteroid - heading + 180) % 360 - 180
-
-        thrust = 0
-        turn_rate = 60
-        fire = False
+        thrust = 50
+        turn_rate = -90
+        fire = True
         drop_mine = False
 
         return thrust, turn_rate, fire, drop_mine
