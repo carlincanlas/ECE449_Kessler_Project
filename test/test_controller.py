@@ -5,29 +5,58 @@
 
 from kesslergame import KesslerController
 from typing import Dict, Tuple
+import math
 
 
 class TestController(KesslerController):
     def __init__(self):
-        """
-        Any variables or initialization desired for the controller can be set up here
-        """
-        ...
+        self.printed_state = False
 
     def actions(self, ship_state: Dict, game_state: Dict) -> Tuple[float, float, bool, bool]:
-        """
-        Method processed each time step by this controller to determine what control actions to take
 
-        Arguments:
-            ship_state (dict): contains state information for your own ship
-            game_state (dict): contains state information for all objects in the game
+        if not self.printed_state:
 
-        Returns:
-            float: thrust control value
-            float: turn-rate control value
-            bool: fire control value. Shoots if true
-            bool: mine deployment control value. Lays mine if true
-        """
+            print("\nSHIP POSITION:")
+            print(ship_state["position"])
+
+            print("\nSHIP HEADING:")
+            print(ship_state["heading"])
+
+            print("\nFIRST ASTEROID:")
+            print(game_state.dict["asteroids"][0])
+
+            ship_x, ship_y = ship_state["position"]
+
+            asteroid = game_state.dict["asteroids"][0]
+            asteroid_x, asteroid_y = asteroid["position"]
+
+            distance = (
+                (asteroid_x - ship_x)**2 +
+                (asteroid_y - ship_y)**2
+            )**0.5
+
+            print("\nDISTANCE TO FIRST ASTEROID:")
+            print(distance)
+
+            dx = asteroid_x - ship_x
+            dy = asteroid_y - ship_y
+
+            angle_to_asteroid = math.degrees(math.atan2(dy, dx))
+
+            print("\nANGLE TO FIRST ASTEROID:")
+            print(angle_to_asteroid)
+
+            heading = ship_state["heading"]
+
+            angle_difference = angle_to_asteroid - heading
+
+            # Normalize the angle to the range -180 to 180 degrees
+            angle_difference = (angle_difference + 180) % 360 - 180
+
+            print("\nANGLE DIFFERENCE:")
+            print(angle_difference)
+
+            self.printed_state = True
 
         thrust = 50
         turn_rate = -90
