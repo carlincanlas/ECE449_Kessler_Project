@@ -10,57 +10,33 @@ import math
 
 class TestController(KesslerController):
     def __init__(self):
-        self.printed_state = False
+        self.debug_counter = 0
 
-    def actions(self, ship_state: Dict, game_state: Dict) -> Tuple[float, float, bool, bool]:
+    def actions(self, ship_state: Dict, game_state: Dict):
 
-        if not self.printed_state:
+        self.debug_counter += 1
 
-            print("\nSHIP POSITION:")
-            print(ship_state["position"])
+        if self.debug_counter % 30 == 0:
+            print("Current heading:", ship_state["heading"])
 
-            print("\nSHIP HEADING:")
-            print(ship_state["heading"])
+        ship_x, ship_y = ship_state["position"]
+        heading = ship_state["heading"]
 
-            print("\nFIRST ASTEROID:")
-            print(game_state.dict["asteroids"][0])
+        asteroid = game_state.dict["asteroids"][0]
+        asteroid_x, asteroid_y = asteroid["position"]
 
-            ship_x, ship_y = ship_state["position"]
+        dx = asteroid_x - ship_x
+        dy = asteroid_y - ship_y
 
-            asteroid = game_state.dict["asteroids"][0]
-            asteroid_x, asteroid_y = asteroid["position"]
+        distance = (dx**2 + dy**2)**0.5
 
-            distance = (
-                (asteroid_x - ship_x)**2 +
-                (asteroid_y - ship_y)**2
-            )**0.5
+        angle_to_asteroid = math.degrees(math.atan2(dy, dx))
 
-            print("\nDISTANCE TO FIRST ASTEROID:")
-            print(distance)
+        angle_difference = (angle_to_asteroid - heading + 180) % 360 - 180
 
-            dx = asteroid_x - ship_x
-            dy = asteroid_y - ship_y
-
-            angle_to_asteroid = math.degrees(math.atan2(dy, dx))
-
-            print("\nANGLE TO FIRST ASTEROID:")
-            print(angle_to_asteroid)
-
-            heading = ship_state["heading"]
-
-            angle_difference = angle_to_asteroid - heading
-
-            # Normalize the angle to the range -180 to 180 degrees
-            angle_difference = (angle_difference + 180) % 360 - 180
-
-            print("\nANGLE DIFFERENCE:")
-            print(angle_difference)
-
-            self.printed_state = True
-
-        thrust = 50
-        turn_rate = -90
-        fire = True
+        thrust = 0
+        turn_rate = 60
+        fire = False
         drop_mine = False
 
         return thrust, turn_rate, fire, drop_mine
