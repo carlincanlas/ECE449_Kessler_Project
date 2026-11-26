@@ -1,17 +1,16 @@
-from pickle import FALSE
+# Adapted from scott_dick_controller.py, Fall 2023, Dr. Scott Dick
+
 from kesslergame import KesslerController # In Eclipse, the name of the library is kesslergame, not src.kesslergame
 from typing import Dict, Tuple
-from cmath import sqrt
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import math
 import numpy as np
-import matplotlib as plt
-
 
 class SnoopyFlyingAce(KesslerController):
     
     def __init__(self):
+        self.initial_asteroids_logged = False
         self.eval_frames = 0 # What is this?
 
         # self.targeting_control is the targeting rulebase, which is static in this controller.      
@@ -79,8 +78,6 @@ class SnoopyFlyingAce(KesslerController):
         #theta_delta.view()
         #ship_turn.view()
         #ship_fire.view()
-     
-     
         
         # Declare the fuzzy controller, add the rules 
         # This is an instance variable, and thus available for other methods in the same object. See notes.                         
@@ -112,20 +109,9 @@ class SnoopyFlyingAce(KesslerController):
         # FUZZY MOVEMENT CONTROL SYSTEM
 
         # Declare fuzzy input and output variables
-        asteroid_distance = ctrl.Antecedent(
-            np.arange(0, 801, 1),
-            'asteroid_distance'
-        )
-
-        ship_speed = ctrl.Antecedent(
-            np.arange(0, 401, 1),
-            'ship_speed'
-        )
-
-        ship_thrust = ctrl.Consequent(
-            np.arange(0, 20.1, 0.1),
-            'ship_thrust'
-        )
+        asteroid_distance = ctrl.Antecedent(np.arange(0, 801, 1),'asteroid_distance')
+        ship_speed = ctrl.Antecedent(np.arange(0, 401, 1),'ship_speed')
+        ship_thrust = ctrl.Consequent(np.arange(0, 20.1, 0.1),'ship_thrust')
 
         # MEMBERSHIP FUNCTIONS
 
@@ -135,77 +121,33 @@ class SnoopyFlyingAce(KesslerController):
         asteroid_distance['Far'] = fuzz.trimf(asteroid_distance.universe, [350, 800, 800])
 
         # Ship speed: Slow, Medium, Fast
-
         ship_speed['Slow'] = fuzz.trimf(ship_speed.universe, [0, 0, 100])
         ship_speed['Medium'] = fuzz.trimf(ship_speed.universe, [50, 150, 250])
         ship_speed['Fast'] = fuzz.trimf(ship_speed.universe, [200, 400, 400])
 
         # Ship thrust: Zero, Low, Medium, High
-
-        ship_thrust['Zero'] = fuzz.trimf(
-            ship_thrust.universe, [0, 0, 5]
-        )
-        ship_thrust['Low'] = fuzz.trimf(
-            ship_thrust.universe, [0, 5, 10]
-        )
-        ship_thrust['Medium'] = fuzz.trimf(
-            ship_thrust.universe, [5, 10, 15]
-        )
-        ship_thrust['High'] = fuzz.trimf(
-            ship_thrust.universe, [10, 15, 20]
-        )
+        ship_thrust['Zero'] = fuzz.trimf(ship_thrust.universe, [0, 0, 5])
+        ship_thrust['Low'] = fuzz.trimf(ship_thrust.universe, [0, 5, 10])
+        ship_thrust['Medium'] = fuzz.trimf(ship_thrust.universe, [5, 10, 15])
+        ship_thrust['High'] = fuzz.trimf(ship_thrust.universe, [10, 15, 20])
 
         # FUZZY RULES
 
         # Near asteroids: use less thrust
-        thrust_rule1 = ctrl.Rule(
-            asteroid_distance['Near'] & ship_speed['Slow'],
-            ship_thrust['Low']
-        )
-
-        thrust_rule2 = ctrl.Rule(
-            asteroid_distance['Near'] & ship_speed['Medium'],
-            ship_thrust['Zero']
-        )
-
-        thrust_rule3 = ctrl.Rule(
-            asteroid_distance['Near'] & ship_speed['Fast'],
-            ship_thrust['Zero']
-        )
+        thrust_rule1 = ctrl.Rule(asteroid_distance['Near'] & ship_speed['Slow'],ship_thrust['Zero'])
+        thrust_rule2 = ctrl.Rule(asteroid_distance['Near'] & ship_speed['Medium'],ship_thrust['Zero'])
+        thrust_rule3 = ctrl.Rule(asteroid_distance['Near'] & ship_speed['Fast'],ship_thrust['Zero'])
 
         # Medium distance: moderate thrust
-
-        thrust_rule4 = ctrl.Rule(
-            asteroid_distance['Medium'] & ship_speed['Slow'],
-            ship_thrust['Medium']
-        )
-
-        thrust_rule5 = ctrl.Rule(
-            asteroid_distance['Medium'] & ship_speed['Medium'],
-            ship_thrust['Low']
-        )
-
-        thrust_rule6 = ctrl.Rule(
-            asteroid_distance['Medium'] & ship_speed['Fast'],
-            ship_thrust['Zero']
-        )
+        thrust_rule4 = ctrl.Rule(asteroid_distance['Medium'] & ship_speed['Slow'],ship_thrust['Medium'])
+        thrust_rule5 = ctrl.Rule(asteroid_distance['Medium'] & ship_speed['Medium'],ship_thrust['Low'])
+        thrust_rule6 = ctrl.Rule(asteroid_distance['Medium'] & ship_speed['Fast'],ship_thrust['Zero'])
 
         # Far away: allow more thrust
 
-        thrust_rule7 = ctrl.Rule(
-            asteroid_distance['Far'] & ship_speed['Slow'],
-            ship_thrust['High']
-        )
-
-        thrust_rule8 = ctrl.Rule(
-            asteroid_distance['Far'] & ship_speed['Medium'],
-            ship_thrust['Medium']
-        )
-
-        thrust_rule9 = ctrl.Rule(
-            asteroid_distance['Far'] & ship_speed['Fast'],
-            ship_thrust['Low']
-        )
+        thrust_rule7 = ctrl.Rule(asteroid_distance['Far'] & ship_speed['Slow'],ship_thrust['High'])
+        thrust_rule8 = ctrl.Rule(asteroid_distance['Far'] & ship_speed['Medium'],ship_thrust['Medium'])
+        thrust_rule9 = ctrl.Rule(asteroid_distance['Far'] & ship_speed['Fast'],ship_thrust['Low'])
 
         # CREATE FUZZY CONTROL SYSTEM
         self.movement_control = ctrl.ControlSystem([
@@ -220,11 +162,36 @@ class SnoopyFlyingAce(KesslerController):
             thrust_rule9
         ])
 
+        # FUZZY MINE CONTROL SYSTEM
 
-        
-        
+        mine_distance = ctrl.Antecedent(np.arange(0, 801, 1),'mine_distance')
+        mine_speed = ctrl.Antecedent(np.arange(0, 41, 1),'mine_speed')
+        mine_output = ctrl.Consequent(np.arange(0, 1.01, 0.01),'mine_output')
 
-    def actions(self, ship_state: Dict, game_state: Dict) -> Tuple[float, float, bool]:
+        # Distance membership functions
+        mine_distance['Near'] = fuzz.trimf(mine_distance.universe, [0, 0, 80])
+        mine_distance['Far'] = fuzz.trimf(mine_distance.universe, [40, 800, 800])
+
+        # Speed membership functions
+        mine_speed['Slow'] = fuzz.trimf(mine_speed.universe, [0, 0, 10])
+        mine_speed['Fast'] = fuzz.trimf(mine_speed.universe, [5, 40, 40])
+
+        # Mine output membership functions
+        mine_output['No'] = fuzz.trimf(mine_output.universe, [0, 0, 0.5])
+        mine_output['Yes'] = fuzz.trimf(mine_output.universe, [0.5, 1, 1])
+
+        # Fuzzy rules
+        mine_rule1 = ctrl.Rule(mine_distance['Near'] & mine_speed['Slow'],mine_output['No'])
+        mine_rule2 = ctrl.Rule(mine_distance['Near'] & mine_speed['Fast'],mine_output['Yes'])
+        mine_rule3 = ctrl.Rule(mine_distance['Far'],mine_output['No'])
+
+        self.mine_control = ctrl.ControlSystem([
+            mine_rule1,
+            mine_rule2,
+            mine_rule3
+        ])
+
+    def actions(self, ship_state: Dict, game_state: Dict) -> Tuple[float, float, bool, bool]:
         """
         Method processed each time step by this controller.
         """
@@ -239,11 +206,8 @@ class SnoopyFlyingAce(KesslerController):
         # So, position is updated by multiplying velocity by delta_time, and adding that to position.
         # Ship velocity is updated by multiplying thrust by delta time.
         # Ship position for this time increment is updated after the the thrust was applied.
-        
-
-        # My demonstration controller does not move the ship, only rotates it to shoot the nearest asteroid.
-        # Goal: demonstrate processing of game state, fuzzy controller, intercept computation 
         # Intercept-point calculation derived from the Law of Cosines, see notes for details and citation.
+
 
         # Find the closest asteroid (disregards asteroid velocity)
         ship_pos_x = ship_state["position"][0]     # See src/kesslergame/ship.py in the KesslerGame Github
@@ -265,9 +229,7 @@ class SnoopyFlyingAce(KesslerController):
                     closest_asteroid["dist"] = curr_dist
 
         
-        # ==========================================
         # EVALUATE FUZZY MOVEMENT CONTROL SYSTEM
-        # ==========================================
 
         # Calculate the ship's current speed
         ship_speed_value = math.sqrt(
@@ -306,72 +268,109 @@ class SnoopyFlyingAce(KesslerController):
         # Retrieve fuzzy output
         thrust = movement.output['ship_thrust']
 
+        # EVALUATE FUZZY MINE CONTROL SYSTEM
+
+        drop_mine = False
+
+        if closest_asteroid is not None:
+
+            mine = ctrl.ControlSystemSimulation(
+                self.mine_control,
+                flush_after_run=1
+            )
+
+            mine.input['mine_distance'] = np.clip(
+                closest_asteroid["dist"], 0, 800
+            )
+
+            mine.input['mine_speed'] = np.clip(
+                ship_speed_value, 0, 40
+            )
+
+            mine.compute()
+
+            # Only drop a mine if the fuzzy output says Yes and the ship has mines remaining
+            if ship_state["mines_remaining"] > 0:
+                drop_mine = bool(mine.output['mine_output'] >= 0.5)
+
         # Handle the case where there are no asteroids
         if closest_asteroid is None:
             self.eval_frames += 1
             return thrust, 0.0, False, False
 
 
-        # closest_asteroid is now the nearest asteroid object. 
-        # Calculate intercept time given ship & asteroid position, asteroid velocity vector, bullet speed (not direction).
-        # Based on Law of Cosines calculation, see notes.
-        
-        # Side D of the triangle is given by closest_asteroid.dist. Need to get the asteroid-ship direction
-        #    and the angle of the asteroid's current movement.
-        # REMEMBER TRIG FUNCTIONS ARE ALL IN RADAINS!!!
-        
-        
-        asteroid_ship_x = ship_pos_x - closest_asteroid["aster"]["position"][0]
-        asteroid_ship_y = ship_pos_y - closest_asteroid["aster"]["position"][1]
-        
-        asteroid_ship_theta = math.atan2(asteroid_ship_y,asteroid_ship_x)
-        
-        asteroid_direction = math.atan2(closest_asteroid["aster"]["velocity"][1], closest_asteroid["aster"]["velocity"][0]) # Velocity is a 2-element array [vx,vy].
-        my_theta2 = asteroid_ship_theta - asteroid_direction
-        cos_my_theta2 = math.cos(my_theta2)
-        # Need the speeds of the asteroid and bullet. speed * time is distance to the intercept point
-        asteroid_vel = math.sqrt(closest_asteroid["aster"]["velocity"][0]**2 + closest_asteroid["aster"]["velocity"][1]**2)
-        bullet_speed = 800 # Hard-coded bullet speed from bullet.py
+        # closest_asteroid is now the nearest asteroid object
+        # Calculate intercept time given ship & asteroid position, asteroid velocity vector, bullet speed (not direction)
+        # Based on Law of Cosines calculation, see notes
         
         # Determinant of the quadratic formula b^2-4ac
-        targ_det = (-2 * closest_asteroid["dist"] * asteroid_vel * cos_my_theta2)**2 - (4*(asteroid_vel**2 - bullet_speed**2) * (closest_asteroid["dist"]**2))
-        
-        # Combine the Law of Cosines with the quadratic formula for solve for intercept time. Remember, there are two values produced.
-        intrcpt1 = ((2 * closest_asteroid["dist"] * asteroid_vel * cos_my_theta2) + math.sqrt(targ_det)) / (2 * (asteroid_vel**2 -bullet_speed**2))
-        intrcpt2 = ((2 * closest_asteroid["dist"] * asteroid_vel * cos_my_theta2) - math.sqrt(targ_det)) / (2 * (asteroid_vel**2-bullet_speed**2))
-        
-        # Take the smaller intercept time, as long as it is positive; if not, take the larger one.
-        if intrcpt1 > intrcpt2:
-            if intrcpt2 >= 0:
-                bullet_t = intrcpt2
-            else:
-                bullet_t = intrcpt1
-        else:
-            if intrcpt1 >= 0:
-                bullet_t = intrcpt1
-            else:
-                bullet_t = intrcpt2
-                
-        # Calculate the intercept point. The work backwards to find the ship's firing angle my_theta1.
-        # Velocities are in m/sec, so bullet_t is in seconds. Add one tik, hardcoded to 1/30 sec.
-        intrcpt_x = closest_asteroid["aster"]["position"][0] + closest_asteroid["aster"]["velocity"][0] * (bullet_t+1/30)
-        intrcpt_y = closest_asteroid["aster"]["position"][1] + closest_asteroid["aster"]["velocity"][1] * (bullet_t+1/30)
+                # Calculate relative position and velocity
+        asteroid_x = closest_asteroid["aster"]["position"][0]
+        asteroid_y = closest_asteroid["aster"]["position"][1]
 
-        
-        my_theta1 = math.atan2((intrcpt_y - ship_pos_y),(intrcpt_x - ship_pos_x))
-        
-        # Lastly, find the difference betwwen firing angle and the ship's current orientation. BUT THE SHIP HEADING IS IN DEGREES.
-        shooting_theta = my_theta1 - ((math.pi/180)*ship_state["heading"])
-        
-        # Wrap all angles to (-pi, pi)
+        asteroid_vx = closest_asteroid["aster"]["velocity"][0]
+        asteroid_vy = closest_asteroid["aster"]["velocity"][1]
+
+        relative_x = asteroid_x - ship_pos_x
+        relative_y = asteroid_y - ship_pos_y
+
+        bullet_speed = 800.0
+
+        # Solve:
+        # |relative_position + asteroid_velocity * t| = bullet_speed * t
+        a = asteroid_vx**2 + asteroid_vy**2 - bullet_speed**2
+        b = 2 * (relative_x * asteroid_vx + relative_y * asteroid_vy)
+        c = relative_x**2 + relative_y**2
+
+        bullet_t = 0.0
+
+        if abs(a) > 1e-9:
+            discriminant = b**2 - 4 * a * c
+
+            if discriminant >= 0:
+                root = math.sqrt(discriminant)
+
+                roots = [
+                    (-b - root) / (2 * a),
+                    (-b + root) / (2 * a)
+                ]
+
+                positive_roots = [t for t in roots if t > 0]
+
+                if positive_roots:
+                    bullet_t = min(positive_roots)
+
+        elif abs(b) > 1e-9:
+            # Linear fallback if the quadratic coefficient is approximately zero
+            possible_time = -c / b
+
+            if possible_time > 0:
+                bullet_t = possible_time
+
+        # Predict the asteroid's position when the bullet arrives
+        # Include one game frame of delay, as in the original controller
+        intrcpt_x = asteroid_x + asteroid_vx * (bullet_t + 1/30)
+        intrcpt_y = asteroid_y + asteroid_vy * (bullet_t + 1/30)
+
+        my_theta1 = math.atan2(intrcpt_y - ship_pos_y, intrcpt_x - ship_pos_x)
+
+        shooting_theta = my_theta1 - math.radians(ship_state["heading"])
+
+        # Wrap the angle to (-pi, pi)
         shooting_theta = (shooting_theta + math.pi) % (2 * math.pi) - math.pi
+
+        # Keep fuzzy inputs inside their defined universes
+        bullet_t = np.clip(bullet_t, 0.0, 0.998)
+        shooting_theta = np.clip(
+            shooting_theta,
+            -math.pi / 30,
+            math.pi / 30 - 0.002
+        )
         
         # Pass the inputs to the rulebase and fire it
         shooting = ctrl.ControlSystemSimulation(self.targeting_control,flush_after_run=1)
-        
         shooting.input['bullet_time'] = bullet_t
         shooting.input['theta_delta'] = shooting_theta
-        
         shooting.compute()
         
         # Get the defuzzified outputs
@@ -382,20 +381,17 @@ class SnoopyFlyingAce(KesslerController):
         else:
             fire = False
                
-        # And return your three outputs to the game simulation. Controller algorithm complete.
-
-        drop_mine = False
-    
         self.eval_frames +=1
         
         #DEBUG
-        print(
-            "Distance:", asteroid_distance_value,
-            "Speed:", ship_speed_value,
-            "Thrust:", thrust,
-            "Turn:", turn_rate,
-            "Fire:", fire
-        )        
+        # print(
+        #     "Distance:", asteroid_distance_value,
+        #     "Speed:", ship_speed_value,
+        #     "Thrust:", thrust,
+        #     "Turn:", turn_rate,
+        #     "Fire:", fire
+        # )
+
         return thrust, turn_rate, fire, drop_mine
 
     @property
