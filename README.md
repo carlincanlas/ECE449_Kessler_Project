@@ -2,7 +2,7 @@ You can click the `<> Code`. button, `Download ZIP` and open the folder in an ID
 
 I'm currently editing /test2/snoopy_flying_ace.py  
 It honestly still sucks, very hit or miss, it can drop a mine at the very start and explode on itself  
-or back up into an asteroid but it's the best I got for now
+or back up into an asteroid after dropping a mine, but it's the best I got for now
 
 I ran /test2/train_ga.py and pasted the output  
 `DEFAULT_GENES = [0.0312, 137.7451, 2.8111, 89.7316, 5.0561, 0.0034]`  
