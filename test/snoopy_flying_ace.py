@@ -1,4 +1,3 @@
-
 # Adapted from scott_dick_controller.py, Fall 2023, Dr. Scott Dick
 
 from kesslergame import KesslerController
