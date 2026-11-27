@@ -1,5 +1,5 @@
-# Your ORIGINAL controller (the one that lasted 60 s with 0 deaths), unchanged except
-# for the class name, so benchmark.py can compare it against the new controller.
+# Original controller 
+# unchanged except for the class name, so benchmark.py can compare it against the new controller
 # Adapted from scott_dick_controller.py, Fall 2023, Dr. Scott Dick
 
 from kesslergame import KesslerController
